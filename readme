@@ -1,0 +1,60 @@
+1. Как загрузить драйвер.
+2. Как компилировать и запускать примеры.
+
+1. Драйвер em_kvv v1.05
+Работает в среде Linux (Linux kernel 2.6). (Разрабатывался в Ubuntu 10.04 x86 2.6.32.21-generic)
+
+
+Загрузить драйвер
+
+// Загрузка для работы с 1-ой платой, minor младший номер 0
+sudo insmod ./em_kvv3_mod.ko ports0=0x330 count0=2 irq0=5 name0="/dev/em_kvv0" minor0=0
+
+// Загрузка для работы с 2-мя платами, 2 minor-a(0 & 1)
+sudo insmod ./em_kvv3_mod.ko ports0=0x330 count0=2 irq0=5 name0="/dev/em_kvv0" minor0=0 ports1=0x378 count1=3 irq1=6 name1="/dev/em_kvv1" minor1=1
+
+
+Выгрузить драйвер
+
+sudo rmmod ./em_kvv3_mod.ko
+
+Печать сообщений ядра
+
+sudo dmesg
+
+Создать соответствующий файл устройства
+sudo mknod /dev/em_kvv0 c 251 0
+251 старший номер устройства major
+0   младший номер устройства minor
+
+Узнать major можно так:
+major=`sudo dmesg | grep "Djvu Init: Device registered. major number is" | tail -n 1 | awk '{size=split($0, arr, "-"); printf("%s\n", arr[2]);}' | tr -d " "`
+
+Скрипт для автоматического подключения драйвера start.sh (Запускать sudo ./start.sh)
+
+
+Также необходимо создать файлы устройств
+
+sudo rm -rf /dev/em_kvv*
+
+sudo mknod /dev/em_kvv0 c 251 0
+sudo mknod /dev/em_kvv1 c 251 1
+sudo mknod /dev/em_kvv2 c 251 2
+sudo chmod 777 /dev/em_kvv*
+
+
+
+!!!!!!!!!! Особое внимание !!!!!!!!!!
+Кол-во EM_close должно соответствовать EM_open
+
+
+
+2. Как компилировать примеры?
+
+Два примера.
+а) Сделано в лоб(1 процесс). main.c
+	gcc main.c em_kvv.c -lrt -o em
+
+б) 2 процесса(fork). main_fork.c
+	Родительский запускает дочерние в которых будет происходить обработка прерываний.
+	gcc main.c em_kvv.c -lrt -o em
